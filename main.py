@@ -98,7 +98,7 @@ ctk.set_appearance_mode("System")  # Use system appearance (light or dark mode)
 ctk.set_default_color_theme("blue")  # Default color theme
 
 app = ctk.CTk()  # Create a CTkinter main window
-app.title("Linear Programming Solver")
+app.title("Simplex Method Calculator")
 app.geometry("400x500")
 
 # Create a frame for inputs
