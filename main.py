@@ -99,7 +99,7 @@ ctk.set_default_color_theme("blue")  # Default color theme
 
 app = ctk.CTk()  # Create a CTkinter main window
 app.title("Simplex Method Calculator")
-app.geometry("400x500")
+app.geometry("600x900")
 
 # Create a frame for inputs
 input_frame = ctk.CTkFrame(app)
