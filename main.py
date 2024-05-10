@@ -26,8 +26,8 @@ def solve_lp():
 
         if optimization_goal == "Maximize":
             objective = [-x for x in objective]
-    except ValueError as ve:
-        messagebox.showerror("Invalid input", "Objective function error: " + str(ve))
+    except ValueError:
+        messagebox.showerror("Invalid input", "Objective function error")
         return
 
     # Prepare constraints for processing
@@ -44,9 +44,8 @@ def solve_lp():
             lhs_constraints.append(lhs)
             rhs_constraints.append(rhs)
             inequality_signs.append(sign)
-
-    except ValueError as ve:
-        messagebox.showerror("Invalid input", "Constraint parsing error: " + str(ve))
+    except ValueError:
+        messagebox.showerror("Invalid input", "Constraint parsing error")
         return
 
     # Separate equality and inequality constraints
@@ -72,13 +71,6 @@ def solve_lp():
     lhs_eq = np.array(lhs_eq) if lhs_eq else None
     rhs_eq = np.array(rhs_eq) if lhs_eq else None
 
-    # Debug output to verify constraints
-    print("Objective:", objective)
-    print("LHS inequality:", lhs_ineq)
-    print("RHS inequality:", rhs_ineq)
-    print("LHS equality:", lhs_eq)
-    print("RHS equality:", rhs_eq)
-
     # Solve the linear programming problem
     res = linprog(
         c=objective,
@@ -98,11 +90,18 @@ def solve_lp():
         optimal_value = -res.fun if optimization_goal == "Maximize" else res.fun
         result_str += f"Optimal value of the objective function: {optimal_value:.4f}"
 
-        result_text.delete("1.0", tk.END)
-        result_text.insert(tk.END, result_str)
+        # Show results in a popup
+        messagebox.showinfo("Solution Found", result_str)
     else:
         messagebox.showerror("LP Error", "Couldn't find an optimal solution. Problem might be infeasible or unbounded.")
 
+# Function to toggle the appearance mode between light and dark
+def toggle_appearance():
+    current_mode = ctk.get_appearance_mode()
+    new_mode = "Dark" if current_mode == "Light" else "Light"
+    ctk.set_appearance_mode(new_mode)
+    # Update the button text to reflect the new mode
+    toggle_button.config(text=f"Switch to {current_mode} Mode")
 
 # Create a customtkinter application
 ctk.set_appearance_mode("System")  # Use system appearance (light or dark mode)
@@ -110,11 +109,24 @@ ctk.set_default_color_theme("blue")  # Default color theme
 
 app = ctk.CTk()  # Create a CTkinter main window
 app.title("Simplex Method Calculator")
-app.geometry("1000x1000")
+app.geometry("800x600")
 
-# Create a frame for inputs
-input_frame = ctk.CTkFrame(app)
+# Use tabs for different sections of the interface
+tab_view = ctk.CTkTabview(app)
+tab_view.pack(pady=10, padx=10, fill=ctk.BOTH, expand=True)
+
+# Create tabs for inputs, constraints, and solving
+input_tab = tab_view.add("Inputs")
+constraints_tab = tab_view.add("Constraints")
+solve_tab = tab_view.add("Solve")
+
+# Create a frame for inputs in the input tab
+input_frame = ctk.CTkFrame(input_tab)
 input_frame.pack(pady=10, padx=10, fill=ctk.BOTH, expand=True)
+
+# Add a button to toggle appearance mode
+toggle_button = ctk.CTkButton(input_frame, text="Switch to Dark Mode", command=toggle_appearance)
+toggle_button.pack(anchor='w', fill=ctk.X, padx=10, pady=10)
 
 # Number of variables and constraints
 ctk.CTkLabel(input_frame, text="Number of variables:").pack(anchor='w', pady=5)
@@ -126,7 +138,7 @@ num_constraints_entry = ctk.CTkEntry(input_frame)
 num_constraints_entry.pack(anchor='w', fill=ctk.X, padx=10)
 
 # Objective function section with labels
-objective_frame = ctk.CTkFrame(input_frame)
+objective_frame = ctk.CTkFrame(input_tab)
 objective_frame.pack(pady=10, fill=ctk.BOTH, expand=True)
 
 ctk.CTkLabel(objective_frame, text="Objective function (coefficients):").pack(anchor='w', pady=5)
@@ -161,7 +173,7 @@ optimization_menu = ctk.CTkOptionMenu(input_frame, variable=optimization_var, va
 optimization_menu.pack(anchor='w', fill=ctk.X, padx=10)
 
 # Constraints section with labels, entries, and dropdown for logical operators
-constraints_frame = ctk.CTkFrame(input_frame)
+constraints_frame = ctk.CTkFrame(constraints_tab)
 constraints_frame.pack(pady=10, fill=ctk.BOTH, expand=True)
 
 class ConstraintRow(ctk.CTkFrame):
@@ -169,8 +181,7 @@ class ConstraintRow(ctk.CTkFrame):
         super().__init__(parent)
         self.entries = []
         for i in range(num_vars):
-            label = ctk.CTkLabel(self, text=f"x{i+1}:")
-            label.pack(side='left')
+            ctk.CTkLabel(self, text=f"x{i + 1}:").pack(side='left')
             entry = ctk.CTkEntry(self)
             entry.pack(side='left')
             self.entries.append(entry)
@@ -192,7 +203,7 @@ def update_constraint_fields():
             widget.destroy()  # Remove all old entries
         constraint_rows.clear()
 
-        for _ in range(num_constraints):
+        for i in range (num_constraints):
             row = ConstraintRow(constraints_frame, num_vars)
             constraint_rows.append(row)
     except ValueError:
@@ -203,12 +214,8 @@ update_constraints_button = ctk.CTkButton(input_frame, text="Update Constraints"
 update_constraints_button.pack(anchor='w', fill=ctk.X, padx=10, pady=10)
 
 # Button to solve the linear programming problem
-solve_button = ctk.CTkButton(app, text="Solve", command=solve_lp)
+solve_button = ctk.CTkButton(solve_tab, text="Solve", command=solve_lp)
 solve_button.pack(pady=10)
-
-# Text widget to display results
-result_text = ctk.CTkTextbox(app, height=10, width=40, wrap='word')
-result_text.pack(pady=10, padx=10, fill=ctk.BOTH, expand=True)
 
 # Run the customtkinter event loop
 app.mainloop()
