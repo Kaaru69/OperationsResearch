@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
 import numpy as np
 from scipy.optimize import linprog
 from ttkbootstrap import Style
@@ -9,7 +10,8 @@ def solve_lp():
         num_vars = int(num_vars_entry.get())
         num_constraints = int(num_constraints_entry.get())
     except ValueError:
-        messagebox.showerror("Invalid input", "Please enter valid numbers for variables and constraints.")
+        result_text.delete('1.0', tk.END)
+        result_text.insert(tk.END, "Invalid input. Please enter valid numbers for variables and constraints.")
         return
 
     optimization_goal = optimization_var.get()
@@ -23,7 +25,8 @@ def solve_lp():
         if optimization_goal == "Maximize":
             objective = [-x for x in objective]
     except ValueError:
-        messagebox.showerror("Invalid input", "Objective function error")
+        result_text.delete('1.0', tk.END)
+        result_text.insert(tk.END, "Objective function error")
         return
 
     lhs_constraints = []
@@ -39,7 +42,8 @@ def solve_lp():
             rhs_constraints.append(rhs)
             inequality_signs.append(sign)
     except ValueError:
-        messagebox.showerror("Invalid input", "Constraint parsing error")
+        result_text.delete('1.0', tk.END)
+        result_text.insert(tk.END, "Constraint parsing error")
         return
 
     lhs_ineq = []
@@ -80,25 +84,38 @@ def solve_lp():
         optimal_value = -res.fun if optimization_goal == "Maximize" else res.fun
         result_str += f"Optimal value of the objective function: {optimal_value:.4f}"
 
-        messagebox.showinfo("Solution Found", result_str)
+        result_text.delete('1.0', tk.END)
+        result_text.insert(tk.END, result_str)
     else:
-        messagebox.showerror("LP Error", "Couldn't find an optimal solution. Problem might be infeasible or unbounded.")
+        result_text.delete('1.0', tk.END)
+        result_text.insert(tk.END, "Couldn't find an optimal solution. Problem might be infeasible or unbounded.")
 
 def toggle_appearance():
     current_mode = style.theme_use()
-    new_mode = "cyborg" if current_mode == "minty" else "minty"
+    new_mode = "vapor" if current_mode == "journal" else "journal"
     style.theme_use(new_mode)
     toggle_button.config(text=f"Switch to {new_mode.capitalize()} Mode")
 
-root = tk.Tk()
-style = Style(theme='minty')
-root.title("Simplex Method Calculator")
-root.geometry("800x600")
+def update_optimization_menu(event=None):
+    current_state = root.state()
+    optimization_menu['menu'].delete(0, 'end')
+    if current_state == 'normal':
+        optimization_menu['menu'].add_command(label='Minimize', command=lambda: optimization_var.set('Minimize'))
+        optimization_menu['menu'].add_command(label='Maximize', command=lambda: optimization_var.set('Maximize'))
+    elif current_state == 'zoomed':
+        optimization_menu['menu'].add_command(label='Maximize', command=lambda: optimization_var.set('Maximize'))
+        optimization_menu['menu'].add_command(label='Minimize', command=lambda: optimization_var.set('Minimize'))
 
-# Set the application icon
+root = tk.Tk()
+style = Style(theme='journal')
+root.title("(⁠◕⁠ᴗ⁠◕⁠✿⁠)")
+root.geometry("500x800")
 root.iconbitmap("icon.ico")
 
-tab_view = ttk.Notebook(root)
+title_label = ttk.Label(root, text="SIMPLEX METHOD CALCULATOR", font=("Lato", 16, "bold"), style="PrimaryLabel.TLabel")
+title_label.pack(pady=10)
+
+tab_view = ttk.Notebook(root, style='journal.Tab')
 tab_view.pack(pady=10, padx=10, fill='both', expand=True)
 
 input_tab = ttk.Frame(tab_view)
@@ -111,22 +128,24 @@ tab_view.add(solve_tab, text="Solve")
 
 input_frame = ttk.Frame(input_tab)
 input_frame.pack(pady=10, padx=10, fill='both', expand=True)
+input_frame.configure(style='journal.TFrame')
 
-toggle_button = ttk.Button(input_frame, text="Switch Appearance", command=toggle_appearance)
+toggle_button = ttk.Button(input_frame, text="Switch Appearance", command=toggle_appearance, style="PrimaryButton.TButton")
 toggle_button.pack(anchor='w', fill='x', padx=10, pady=10)
 
-ttk.Label(input_frame, text="Number of variables:").pack(anchor='w', pady=5)
-num_vars_entry = ttk.Entry(input_frame)
+ttk.Label(input_frame, text="Number of variables:", font=("Lato", 10), style="PrimaryLabel.TLabel").pack(anchor='w', pady=5)
+num_vars_entry = ttk.Entry(input_frame, style="PrimaryEntry.TEntry", width=6)
 num_vars_entry.pack(anchor='w', fill='x', padx=10)
 
-ttk.Label(input_frame, text="Number of constraints:").pack(anchor='w', pady=5)
-num_constraints_entry = ttk.Entry(input_frame)
+ttk.Label(input_frame, text="Number of constraints:", font=("Lato", 10), style="PrimaryLabel.TLabel").pack(anchor='w', pady=5)
+num_constraints_entry = ttk.Entry(input_frame, style="PrimaryEntry.TEntry", width=6)
 num_constraints_entry.pack(anchor='w', fill='x', padx=10)
 
 objective_frame = ttk.Frame(input_tab)
 objective_frame.pack(pady=10, fill='both', expand=True)
+objective_frame.configure(style='journal.TFrame')
 
-ttk.Label(objective_frame, text="Objective function (coefficients):").pack(anchor='w', pady=5)
+ttk.Label(objective_frame, text="Objective function (coefficients):", font=("Lato", 10), style="PrimaryLabel.TLabel").pack(anchor='w', pady=5)
 
 objective_entries = []
 num_vars = 0
@@ -138,38 +157,47 @@ def update_objective_fields():
             widget.destroy()
         objective_entries.clear()
         for i in range(num_vars):
-            label = ttk.Label(objective_frame, text=f"x{i + 1}:")
+            label = ttk.Label(objective_frame, text=f"x{i + 1}:", font=("Lato", 10), style="PrimaryLabel.TLabel")
             label.pack(side='left')
-            entry = ttk.Entry(objective_frame)
+            entry = ttk.Entry(objective_frame, style="PrimaryEntry.TEntry", width=6)
             entry.pack(side='left')
             objective_entries.append(entry)
     except ValueError:
-        messagebox.showerror("Invalid input", "Please enter a valid number of variables.")
+        result_text.delete('1.0', tk.END)
+        result_text.insert(tk.END, "Please enter a valid number of variables.")
 
-update_objective_button = ttk.Button(input_frame, text="Update Objective Fields", command=update_objective_fields)
+update_objective_button = ttk.Button(input_frame, text="Update Objective Fields", command=update_objective_fields, style="PrimaryButton.TButton")
 update_objective_button.pack(anchor='w', fill='x', padx=10, pady=10)
 
-ttk.Label(input_frame, text="Optimization goal:").pack(anchor='w', pady=5)
+ttk.Label(input_frame, text="Optimization goal:", font=("Lato", 10), style="PrimaryLabel.TLabel").pack(anchor='w', pady=5)
+
+# Custom Style for OptionMenu
+custom_style = ttk.Style()
+custom_style.theme_use(style.theme_use())
+custom_style.configure('PrimaryMenubutton.TMenubutton', background='#FF5733') # Orange color
+custom_style.configure('PrimaryMenubutton.TMenubutton', foreground='#FFFFFF') # White text color
+
 optimization_var = tk.StringVar(value="Minimize")
-optimization_menu = ttk.OptionMenu(input_frame, optimization_var, "Minimize", "Maximize")
+optimization_menu = ttk.OptionMenu(input_frame, optimization_var, "Minimize", "Maximize", style='PrimaryMenubutton.TMenubutton')
 optimization_menu.pack(anchor='w', fill='x', padx=10)
 
 constraints_frame = ttk.Frame(constraints_tab)
 constraints_frame.pack(pady=10, fill='both', expand=True)
+constraints_frame.configure(style='journal.TFrame')
 
 class ConstraintRow(ttk.Frame):
     def __init__(self, parent, num_vars):
         super().__init__(parent)
         self.entries = []
         for i in range(num_vars):
-            ttk.Label(self, text=f"x{i + 1}:").pack(side='left')
-            entry = ttk.Entry(self)
+            ttk.Label(self, text=f"x{i + 1}:", font=("Lato", 10), style="PrimaryLabel.TLabel").pack(side='left')
+            entry = ttk.Entry(self, style="PrimaryEntry.TEntry", width=6)
             entry.pack(side='left')
             self.entries.append(entry)
         self.inequality_var = tk.StringVar(value="<=")  # Changed here
-        self.inequality_menu = ttk.OptionMenu(self, self.inequality_var, "<=", "<=", ">=", "=")
+        self.inequality_menu = ttk.OptionMenu(self, self.inequality_var, "<=", "<=", ">=", "=", style='PrimaryMenubutton.TMenubutton')
         self.inequality_menu.pack(side='left')
-        rhs_entry = ttk.Entry(self)
+        rhs_entry = ttk.Entry(self, style="PrimaryEntry.TEntry", width=6)
         rhs_entry.pack(side='left')
         self.entries.append(rhs_entry)
         self.pack(anchor='w', fill='x', pady=3)
@@ -188,12 +216,18 @@ def update_constraint_fields():
             row = ConstraintRow(constraints_frame, num_vars)
             constraint_rows.append(row)
     except ValueError:
-        messagebox.showerror("Invalid input", "Please enter valid numbers for variables and constraints.")
+        result_text.delete('1.0', tk.END)
+        result_text.insert(tk.END, "Please enter valid numbers for variables and constraints.")
 
-update_constraints_button = ttk.Button(input_frame, text="Update Constraints", command=update_constraint_fields)
+update_constraints_button = ttk.Button(input_frame, text="Update Constraints", command=update_constraint_fields, style="PrimaryButton.TButton")
 update_constraints_button.pack(anchor='w', fill='x', padx=10, pady=10)
 
-solve_button = ttk.Button(solve_tab, text="Solve", command=solve_lp)
+solve_button = ttk.Button(solve_tab, text="Solve", command=solve_lp, style="PrimaryButton.TButton")
 solve_button.pack(pady=10)
+
+result_text = tk.Text(solve_tab, wrap=tk.WORD, width=50, height=10, font=("Helvetica", 10))
+result_text.pack(pady=10)
+
+root.bind('<Configure>', update_optimization_menu)
 
 root.mainloop()
